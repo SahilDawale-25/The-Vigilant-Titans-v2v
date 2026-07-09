@@ -9,3 +9,6 @@ langchain
 langchain-google-genai
 chromadb
 python-multipart
+reportlab
+pdfplumber
+pillow
