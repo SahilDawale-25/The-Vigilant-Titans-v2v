@@ -1,0 +1,7 @@
+# Environment Variables
+.env
+.env.*
+backend/.env
+
+# Firebase Secrets
+backend/firebase-service-account.json
