@@ -13,3 +13,4 @@ reportlab
 pdfplumber
 pillow
 gTTS
+email-validator
