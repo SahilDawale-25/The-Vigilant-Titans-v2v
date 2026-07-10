@@ -69,14 +69,14 @@ export default function NewMotherPage() {
   }, [user]);
 
   async function loadVideoGuides() {
-    try {
-      const res = await fetch("http://localhost:8000/newmother/video-guides");
-      const data = await res.json();
-      setVideoGuides(data.guides);
-    } catch (err) {
-      console.error(err);
-    }
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/newmother/video-guides`);
+    const data = await res.json();
+    setVideoGuides(data.guides || []);
+  } catch (err) {
+    console.error(err);
   }
+}
 
   async function loadVaccineSchedule() {
     try {

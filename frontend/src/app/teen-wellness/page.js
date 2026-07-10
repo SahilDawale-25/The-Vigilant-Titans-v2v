@@ -46,18 +46,18 @@ export default function TeenWellnessPage() {
   }, [chatHistory, loading]);
 
   async function loadMythsFacts() {
-    try {
-      const res = await fetch("http://localhost:8000/teen/myths-facts");
-      const data = await res.json();
-      setItems(data.items);
-    } catch (err) {
-      console.error(err);
-    }
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/teen/myths-facts`);
+    const data = await res.json();
+    setItems(data.items || []);
+  } catch (err) {
+    console.error(err);
   }
+}
 
   async function loadVideoGuides() {
     try {
-      const res = await fetch("http://localhost:8000/teen/video-guides");
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/teen/video-guides`);
       const data = await res.json();
       setVideoGuides(data.guides);
     } catch (err) {
