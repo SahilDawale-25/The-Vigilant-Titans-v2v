@@ -104,7 +104,7 @@ def dashboard_summary(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000", "the-vigilant-titans-v2v.vercel.app"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
