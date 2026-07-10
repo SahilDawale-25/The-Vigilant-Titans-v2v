@@ -25,3 +25,5 @@ frontend/.next/
 Thumbs.db
 
 generated_audio/
+
+frontend/.env.local
