@@ -18,16 +18,27 @@ function SendIcon() {
   );
 }
 
+function VideoIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <rect x="3" y="5.5" width="13" height="13" rx="2.5" strokeWidth="1.6" />
+      <path d="M16 9.5l5-2.5v10l-5-2.5" strokeWidth="1.6" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export default function TeenWellnessPage() {
   const [items, setItems] = useState([]);
   const [flipped, setFlipped] = useState({});
   const [question, setQuestion] = useState("");
   const [chatHistory, setChatHistory] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [videoGuides, setVideoGuides] = useState([]);
   const chatEndRef = useRef(null);
 
   useEffect(() => {
     loadMythsFacts();
+    loadVideoGuides();
   }, []);
 
   useEffect(() => {
@@ -39,6 +50,16 @@ export default function TeenWellnessPage() {
       const res = await fetch("http://localhost:8000/teen/myths-facts");
       const data = await res.json();
       setItems(data.items);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function loadVideoGuides() {
+    try {
+      const res = await fetch("http://localhost:8000/teen/video-guides");
+      const data = await res.json();
+      setVideoGuides(data.guides);
     } catch (err) {
       console.error(err);
     }
@@ -98,8 +119,9 @@ export default function TeenWellnessPage() {
           </div>
         </div>
 
+        {/* Top Section: Myth vs Fact + Video Guides side by side */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
-          {/* Myth vs Fact Cards */}
+          {/* ================= Myth vs Fact ================= */}
           <div>
             <p className="text-[11px] uppercase tracking-wide text-[#8A8299] mb-3">Myth vs Fact</p>
             <div className="space-y-3">
@@ -112,9 +134,7 @@ export default function TeenWellnessPage() {
                     className="bg-white rounded-2xl shadow-sm border border-[#F1ECFB] p-4 md:p-5 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all"
                   >
                     <p className="text-sm text-[#251C35] leading-relaxed">
-                      <span
-                        className={`font-semibold ${isFlipped ? "text-[#3F9142]" : "text-[#E24C3B]"}`}
-                      >
+                      <span className={`font-semibold ${isFlipped ? "text-[#3F9142]" : "text-[#E24C3B]"}`}>
                         {isFlipped ? "Fact: " : "Myth: "}
                       </span>
                       {isFlipped ? item.fact : item.myth}
@@ -126,13 +146,68 @@ export default function TeenWellnessPage() {
                 );
               })}
               {items.length === 0 && (
-                <p className="text-[#C4BDDB] text-sm py-4 text-center">Loading...</p>
+                <div className="bg-white rounded-2xl shadow-sm border border-[#F1ECFB] p-5 text-center text-sm text-[#C4BDDB]">
+                  Loading...
+                </div>
               )}
             </div>
           </div>
 
-          {/* Anonymous Chat */}
-          <div className="bg-white rounded-3xl shadow-sm border border-[#F1ECFB] p-5 md:p-6 flex flex-col h-[500px] md:h-[600px]">
+          {/* ================= Video Guides ================= */}
+          <div>
+            <p className="text-[11px] uppercase tracking-wide text-[#8A8299] mb-3">Video Guides</p>
+            <div className="space-y-3">
+              {videoGuides.map((guide) => (
+                <div
+                  key={guide.id}
+                  className="bg-white rounded-2xl shadow-sm border border-[#F1ECFB] p-4 md:p-5"
+                >
+                  <div className="flex items-center gap-2 mb-3.5">
+                    <span className="w-8 h-8 rounded-xl bg-[#2563EB1A] flex items-center justify-center text-[#2563EB] shrink-0">
+                      <VideoIcon />
+                    </span>
+                    <p className="font-semibold text-[#251C35] text-sm">{guide.topic}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <a
+                      href={guide.videos.english}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-2 rounded-full bg-[#EFF4FE] text-[#2563EB] text-xs font-medium hover:bg-[#E1EAFC] transition-colors"
+                    >
+                      English
+                    </a>
+                    <a
+                      href={guide.videos.hindi}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-2 rounded-full bg-[#FDF1E9] text-[#C97B3F] text-xs font-medium hover:bg-[#FBE7D6] transition-colors"
+                    >
+                      हिन्दी
+                    </a>
+                    <a
+                      href={guide.videos.marathi}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-2 rounded-full bg-[#EEF7EF] text-[#3F9142] text-xs font-medium hover:bg-[#E1F0E3] transition-colors"
+                    >
+                      मराठी
+                    </a>
+                  </div>
+                </div>
+              ))}
+              {videoGuides.length === 0 && (
+                <div className="bg-white rounded-2xl shadow-sm border border-[#F1ECFB] p-5 text-center text-sm text-[#C4BDDB]">
+                  Loading video guides...
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ================= Anonymous Chat ================= */}
+        <div className="mt-6">
+          <div className="bg-white rounded-3xl shadow-sm border border-[#F1ECFB] p-5 md:p-6 flex flex-col h-[550px] md:h-[650px]">
             <p className="text-[11px] uppercase tracking-wide text-[#8A8299] mb-1">Anonymous Q&A</p>
             <p className="text-xs text-[#C4BDDB] mb-4">No sign-in needed. Your questions stay private.</p>
 

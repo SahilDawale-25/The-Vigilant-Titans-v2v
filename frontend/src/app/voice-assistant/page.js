@@ -3,12 +3,22 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../context/AuthContext";
 import { apiCall } from "../../lib/api";
+import { auth } from "../../lib/firebase";
 
 const LANGUAGES = [
   { code: "en", label: "English", speechLang: "en-US" },
   { code: "hi", label: "हिंदी (Hindi)", speechLang: "hi-IN" },
   { code: "mr", label: "मराठी (Marathi)", speechLang: "mr-IN" },
 ];
+
+function MicIcon({ className }) {
+  return (
+    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" className={className}>
+      <rect x="9" y="2.5" width="6" height="11" rx="3" strokeWidth="1.7" />
+      <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3.5M9 21.5h6" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 export default function VoiceAssistantPage() {
   const { user, loading } = useAuth();
@@ -19,10 +29,15 @@ export default function VoiceAssistantPage() {
   const [messages, setMessages] = useState([]);
   const [processing, setProcessing] = useState(false);
   const recognitionRef = useRef(null);
+  const chatEndRef = useRef(null);
 
   useEffect(() => {
     if (!loading && !user) router.push("/login");
   }, [user, loading, router]);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, processing]);
 
   useEffect(() => {
     // Web Speech API setup (Chrome sathi best support)
@@ -80,7 +95,27 @@ export default function VoiceAssistantPage() {
     }
   }
 
-  function speakResponse(text) {
+  async function speakResponse(text) {
+  try {
+    const token = await auth.currentUser.getIdToken();
+    const res = await fetch("http://localhost:8000/ai/voice-assistant/speak", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ text, language }),
+    });
+
+    if (!res.ok) throw new Error("TTS generation failed");
+
+    const audioBlob = await res.blob();
+    const audioUrl = URL.createObjectURL(audioBlob);
+    const audio = new Audio(audioUrl);
+    audio.play();
+  } catch (err) {
+    console.error("TTS error:", err);
+    // Fallback: browser cha default TTS vapра jar backend fail zala
     if ("speechSynthesis" in window) {
       const utterance = new SpeechSynthesisUtterance(text);
       const selectedLang = LANGUAGES.find((l) => l.code === language);
@@ -88,60 +123,106 @@ export default function VoiceAssistantPage() {
       window.speechSynthesis.speak(utterance);
     }
   }
+}
 
-  if (loading || !user) return <div className="p-10">Loading...</div>;
+  if (loading || !user) {
+    return (
+      <div className="min-h-screen bg-[#FAF7FF] flex items-center justify-center">
+        <p className="text-[#8A8299] text-sm">Loading...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-indigo-50 p-8 flex flex-col items-center">
-      <h1 className="text-3xl font-bold text-indigo-800 mb-2">AI Voice Assistant</h1>
-      <p className="text-gray-500 mb-6">Speak naturally — I'll respond in your chosen language.</p>
+    <div className="min-h-screen bg-[#FAF7FF]">
+      <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap');
+      `}</style>
 
-      {/* Language Selector */}
-      <div className="flex gap-2 mb-6">
-        {LANGUAGES.map((lang) => (
-          <button
-            key={lang.code}
-            onClick={() => setLanguage(lang.code)}
-            className={`px-4 py-2 rounded-full text-sm ${
-              language === lang.code
-                ? "bg-indigo-600 text-white"
-                : "bg-white text-indigo-600 border border-indigo-200"
-            }`}
-          >
-            {lang.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Mic Button */}
-      <button
-        onClick={startListening}
-        disabled={listening || processing}
-        className={`w-24 h-24 rounded-full flex items-center justify-center text-4xl shadow-lg transition ${
-          listening ? "bg-red-500 animate-pulse" : "bg-indigo-600 hover:bg-indigo-700"
-        } text-white disabled:opacity-70`}
+      <div
+        className="max-w-2xl mx-auto px-4 py-6 md:px-8 md:py-10 flex flex-col items-center"
+        style={{ fontFamily: "'Inter', sans-serif" }}
       >
-        🎤
-      </button>
-      <p className="text-sm text-gray-500 mt-2">
-        {listening ? "Listening..." : processing ? "Thinking..." : "Tap to speak"}
-      </p>
-
-      {/* Conversation */}
-      <div className="w-full max-w-2xl mt-8 bg-white rounded-2xl shadow-md p-6 space-y-3 max-h-96 overflow-y-auto">
-        {messages.length === 0 && (
-          <p className="text-gray-400 text-sm text-center">Your conversation will appear here.</p>
-        )}
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={`p-3 rounded-lg text-sm max-w-[85%] ${
-              msg.role === "user" ? "bg-indigo-100 ml-auto text-indigo-900" : "bg-gray-100 text-gray-700"
-            }`}
+        {/* Header */}
+        <div className="text-center mb-6">
+          <h1
+            className="text-[26px] md:text-3xl text-[#251C35] leading-tight"
+            style={{ fontFamily: "'Fraunces', serif" }}
           >
-            {msg.text}
-          </div>
-        ))}
+            AI Voice Assistant
+          </h1>
+          <p className="text-sm text-[#8A8299] mt-1">
+            Speak naturally — I'll respond in your chosen language
+          </p>
+        </div>
+
+        {/* Language Selector */}
+        <div className="flex gap-2 mb-8 flex-wrap justify-center">
+          {LANGUAGES.map((lang) => (
+            <button
+              key={lang.code}
+              onClick={() => setLanguage(lang.code)}
+              className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
+                language === lang.code
+                  ? "bg-[#7C3AED] text-white border-[#7C3AED]"
+                  : "bg-white text-[#8A8299] border-[#EFE9FB] hover:border-[#7C3AED66]"
+              }`}
+            >
+              {lang.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Mic Button */}
+        <div className="relative">
+          {listening && (
+            <span className="absolute inset-0 rounded-full bg-[#7C3AED] opacity-30 animate-ping" />
+          )}
+          <button
+            onClick={startListening}
+            disabled={listening || processing}
+            className={`relative w-24 h-24 rounded-full flex items-center justify-center shadow-lg transition-colors ${
+              listening ? "bg-[#F2733F]" : "bg-[#7C3AED] hover:bg-[#6B21D8]"
+            } text-white disabled:opacity-70`}
+          >
+            <MicIcon />
+          </button>
+        </div>
+        <p className="text-sm text-[#8A8299] mt-3">
+          {listening ? "Listening..." : processing ? "Thinking..." : "Tap to speak"}
+        </p>
+
+        {/* Conversation */}
+        <div className="w-full mt-8 bg-white rounded-3xl shadow-sm border border-[#F1ECFB] p-5 md:p-6 space-y-3 max-h-96 overflow-y-auto">
+          {messages.length === 0 && (
+            <div className="py-8 flex flex-col items-center text-center">
+              <div className="w-10 h-10 rounded-xl bg-[#7C3AED1A] flex items-center justify-center mb-2 text-[#7C3AED]">
+                <MicIcon className="w-5 h-5" />
+              </div>
+              <p className="text-[#8A8299] text-sm">Your conversation will appear here.</p>
+            </div>
+          )}
+          {messages.map((msg, i) => (
+            <div
+              key={i}
+              className={`p-3 rounded-2xl text-sm max-w-[85%] leading-relaxed ${
+                msg.role === "user"
+                  ? "bg-[#7C3AED] text-white ml-auto"
+                  : "bg-[#FAF7FF] text-[#251C35]"
+              }`}
+            >
+              {msg.text}
+            </div>
+          ))}
+          {processing && (
+            <div className="bg-[#FAF7FF] text-[#8A8299] text-sm p-3 rounded-2xl max-w-[60%] flex gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#C4BDDB] animate-bounce [animation-delay:-0.3s]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#C4BDDB] animate-bounce [animation-delay:-0.15s]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#C4BDDB] animate-bounce" />
+            </div>
+          )}
+          <div ref={chatEndRef} />
+        </div>
       </div>
     </div>
   );

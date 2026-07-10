@@ -53,6 +53,20 @@ from services.voice_service import generate_voice_response
 
 from data.teen_data import MYTHS_FACTS
 
+from services.reminder_service import calculate_next_period_prediction, build_reminder_list
+
+from services.hospital_service import find_nearby_hospitals
+
+from models.emergency_contact import EmergencyContact
+from schemas.emergency_contact import EmergencyContactCreate
+
+from data.video_guide_data import VIDEO_GUIDES
+
+from fastapi.responses import FileResponse
+from services.tts_service import generate_speech_audio
+
+from data.new_mother_video_data import NEW_MOTHER_VIDEO_GUIDES
+
 
 
 # Ha line sagle tables (users, health_profiles) database madhe automatically banvel
@@ -641,3 +655,129 @@ def voice_assistant_query(
 
     response_text = generate_voice_response(query, language, history)
     return {"response": response_text}
+
+
+@app.get("/dashboard/reminders")
+def get_all_reminders(
+    user_data: dict = Depends(verify_token),
+    db: Session = Depends(get_db),
+):
+    user = db.query(User).filter(User.email == user_data.get("email")).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Cycle prediction
+    cycle_logs = db.query(CycleLog).filter(CycleLog.user_id == user.id).order_by(CycleLog.start_date.desc()).limit(5).all()
+    cycle_prediction = calculate_next_period_prediction(cycle_logs)
+
+    # Medicine reminders (pregnancy)
+    medicine_reminders = db.query(MedicineReminder).filter(
+        MedicineReminder.user_id == user.id, MedicineReminder.is_active == True
+    ).all()
+
+    # Vaccination schedule (baby)
+    vaccination_schedule = []
+    baby = db.query(BabyProfile).filter(BabyProfile.user_id == user.id).first()
+    if baby:
+        _, vaccination_schedule = get_vaccination_status(baby.date_of_birth)
+
+    reminders = build_reminder_list(cycle_prediction, medicine_reminders, vaccination_schedule)
+
+    return {
+        "reminders": reminders,
+        "cycle_prediction": cycle_prediction,
+    }
+
+
+@app.get("/pregnancy/nearby-hospitals")
+def nearby_hospitals(
+    latitude: float,
+    longitude: float,
+    user_data: dict = Depends(verify_token),
+):
+    hospitals = find_nearby_hospitals(latitude, longitude)
+    if not hospitals:
+        return {"hospitals": [], "message": "No hospitals found nearby. Please try again or check your location."}
+    return {"hospitals": hospitals}
+
+
+@app.post("/emergency-contact")
+def save_emergency_contact(
+    contact: EmergencyContactCreate,
+    user_data: dict = Depends(verify_token),
+    db: Session = Depends(get_db),
+):
+    user = db.query(User).filter(User.email == user_data.get("email")).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    existing = db.query(EmergencyContact).filter(EmergencyContact.user_id == user.id).first()
+
+    if existing:
+        existing.contact_name = contact.contact_name
+        existing.relationship = contact.relationship
+        existing.phone_number = contact.phone_number
+    else:
+        existing = EmergencyContact(
+            user_id=user.id,
+            contact_name=contact.contact_name,
+            relationship=contact.relationship,
+            phone_number=contact.phone_number,
+        )
+        db.add(existing)
+
+    db.commit()
+    return {"message": "Emergency contact saved"}
+
+
+@app.get("/emergency-contact")
+def get_emergency_contact(
+    user_data: dict = Depends(verify_token),
+    db: Session = Depends(get_db),
+):
+    user = db.query(User).filter(User.email == user_data.get("email")).first()
+    contact = db.query(EmergencyContact).filter(EmergencyContact.user_id == user.id).first()
+
+    if not contact:
+        raise HTTPException(status_code=404, detail="No emergency contact set")
+
+    return {
+        "contact_name": contact.contact_name,
+        "relationship": contact.relationship,
+        "phone_number": contact.phone_number,
+    }
+
+
+@app.get("/teen/video-guides")
+def get_video_guides():
+    return {"guides": VIDEO_GUIDES}
+
+    
+
+@app.post("/ai/voice-assistant/speak")
+def generate_voice_audio(
+    payload: dict,
+    user_data: dict = Depends(verify_token),
+):
+    """
+    payload: {"text": "...", "language": "en" | "hi" | "mr"}
+    Returns audio file jo natural-sounding TTS vaparto (gTTS).
+    """
+    text = payload.get("text", "")
+    language = payload.get("language", "en")
+
+    if not text:
+        raise HTTPException(status_code=400, detail="Text is required")
+
+    file_path = generate_speech_audio(text, language)
+
+    return FileResponse(
+        path=file_path,
+        media_type="audio/mpeg",
+        filename="response.mp3",
+    )
+
+
+@app.get("/newmother/video-guides")
+def get_new_mother_video_guides():
+    return {"guides": NEW_MOTHER_VIDEO_GUIDES}

@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { auth } from "../lib/firebase";
 import { useAuth } from "../context/AuthContext";
+import Image from "next/image";
 
 // Standalone links + grouped categories
 const PRIMARY_LINKS = [{ href: "/dashboard", label: "Dashboard" }];
@@ -35,17 +36,16 @@ const TRAILING_LINKS = [{ href: "/monthly-report", label: "Monthly Report" }];
 
 function Logo() {
   return (
-    <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
-      <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
-        <circle cx="15" cy="15" r="14" stroke="#ed3a73" strokeWidth="1.6" />
-        <path
-          d="M15 8c-3.5 3.2-6 5.8-6 8.6a6 6 0 0 0 12 0c0-2.8-2.5-5.4-6-8.6Z"
-          fill="#e82121"
-        />
-        <circle cx="12.6" cy="15.2" r="1.3" fill="white" opacity="0.85" />
-      </svg>
+    <Link href="/dashboard" className="flex items-center gap-0 shrink-0">
+      <Image
+        src="/images/logo1.png"
+        alt="HerWellness logo"
+        width={50}
+        height={50}
+        className="object-contain"
+      />
       <span className="text-lg font-semibold tracking-tight text-gray-900">
-        Her<span className="text-pink-600">Wellness</span>
+        Her<span className="text-pink-900">Wellness</span>
       </span>
     </Link>
   );

@@ -22,6 +22,15 @@ function SyringeIcon() {
   );
 }
 
+function VideoIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <rect x="3" y="5.5" width="13" height="13" rx="2.5" strokeWidth="1.6" />
+      <path d="M16 9.5l5-2.5v10l-5-2.5" strokeWidth="1.6" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function SectionCard({ title, children, className = "" }) {
   return (
     <div className={`bg-white rounded-3xl shadow-sm border border-[#F1ECFB] p-5 md:p-6 ${className}`}>
@@ -45,6 +54,7 @@ export default function NewMotherPage() {
   const [message, setMessage] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
   const [loggingMood, setLoggingMood] = useState(false);
+  const [videoGuides, setVideoGuides] = useState([]);
 
   useEffect(() => {
     if (!loading && !user) router.push("/login");
@@ -54,8 +64,19 @@ export default function NewMotherPage() {
     if (user) {
       loadVaccineSchedule();
       loadTips();
+      loadVideoGuides();
     }
   }, [user]);
+
+  async function loadVideoGuides() {
+    try {
+      const res = await fetch("http://localhost:8000/newmother/video-guides");
+      const data = await res.json();
+      setVideoGuides(data.guides);
+    } catch (err) {
+      console.error(err);
+    }
+  }
 
   async function loadVaccineSchedule() {
     try {
@@ -219,6 +240,58 @@ export default function NewMotherPage() {
                   </li>
                 ))}
               </ul>
+            </SectionCard>
+
+            {/* Video Guides */}
+            <SectionCard title="Video Guides" className="md:col-span-2">
+              <p className="text-sm text-[#8A8299] mb-4 -mt-2">
+                Watch simple, step-by-step videos in your preferred language.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {videoGuides.map((guide) => (
+                  <div
+                    key={guide.id}
+                    className="p-4 rounded-2xl border border-[#F1ECFB]"
+                    style={{ backgroundColor: "#FAF7FF" }}
+                  >
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="w-8 h-8 rounded-xl bg-[#3F91421A] flex items-center justify-center text-[#3F9142] shrink-0">
+                        <VideoIcon />
+                      </span>
+                      <p className="font-semibold text-[#251C35] text-sm">{guide.topic}</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <a
+                        href={guide.videos.english}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs bg-white text-[#3F9142] px-3 py-1.5 rounded-full hover:bg-[#EEF7EF] transition-colors border border-[#D9EEDA]"
+                      >
+                        English
+                      </a>
+                      <a
+                        href={guide.videos.hindi}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs bg-white text-[#C97B3F] px-3 py-1.5 rounded-full hover:bg-[#FDF1E9] transition-colors border border-[#F5E2CE]"
+                      >
+                        हिन्दी
+                      </a>
+                      <a
+                        href={guide.videos.marathi}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs bg-white text-[#2563EB] px-3 py-1.5 rounded-full hover:bg-[#EFF4FE] transition-colors border border-[#DCE7FB]"
+                      >
+                        मराठी
+                      </a>
+                    </div>
+                  </div>
+                ))}
+                {videoGuides.length === 0 && (
+                  <p className="text-[#C4BDDB] text-sm py-2">Loading video guides...</p>
+                )}
+              </div>
             </SectionCard>
 
             {/* Postpartum Mood Log */}

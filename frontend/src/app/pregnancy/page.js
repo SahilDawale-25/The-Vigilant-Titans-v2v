@@ -10,6 +10,14 @@ const TIME_OPTIONS = [
   { value: "night", label: "Night" },
 ];
 
+const RELATIONSHIP_OPTIONS = [
+  { value: "husband", label: "Husband" },
+  { value: "mother", label: "Mother" },
+  { value: "sister", label: "Sister" },
+  { value: "friend", label: "Friend" },
+  { value: "other", label: "Other" },
+];
+
 function BumpIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -41,6 +49,15 @@ function PillIcon() {
   );
 }
 
+function HospitalIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <rect x="4" y="4" width="16" height="16" rx="2" strokeWidth="1.6" />
+      <path d="M12 8v8M8 12h8" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function SectionCard({ title, children, className = "" }) {
   return (
     <div className={`bg-white rounded-3xl shadow-sm border border-[#F1ECFB] p-5 md:p-6 ${className}`}>
@@ -65,6 +82,16 @@ export default function PregnancyPage() {
   const [reminders, setReminders] = useState([]);
   const [message, setMessage] = useState("");
   const [savingDate, setSavingDate] = useState(false);
+  const [hospitals, setHospitals] = useState([]);
+  const [loadingHospitals, setLoadingHospitals] = useState(false);
+  const [locationError, setLocationError] = useState("");
+
+  // Emergency contact states
+  const [contactName, setContactName] = useState("");
+  const [relationship, setRelationship] = useState("husband");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [emergencyContact, setEmergencyContact] = useState(null);
+  const [alertMessage, setAlertMessage] = useState("");
 
   useEffect(() => {
     if (!loading && !user) router.push("/login");
@@ -75,6 +102,7 @@ export default function PregnancyPage() {
       loadWeekInfo();
       loadEmergencyChecklist();
       loadReminders();
+      loadEmergencyContact();
     }
   }, [user]);
 
@@ -102,6 +130,15 @@ export default function PregnancyPage() {
       setReminders(data);
     } catch (err) {
       console.error(err);
+    }
+  }
+
+  async function loadEmergencyContact() {
+    try {
+      const data = await apiCall("/emergency-contact");
+      setEmergencyContact(data);
+    } catch (err) {
+      setEmergencyContact(null);
     }
   }
 
@@ -134,6 +171,68 @@ export default function PregnancyPage() {
     } catch (err) {
       console.error(err);
     }
+  }
+
+  async function handleContactSubmit(e) {
+    e.preventDefault();
+    try {
+      await apiCall("/emergency-contact", {
+        method: "POST",
+        body: JSON.stringify({
+          contact_name: contactName,
+          relationship: relationship,
+          phone_number: phoneNumber,
+        }),
+      });
+      setAlertMessage("Emergency contact saved!");
+      loadEmergencyContact();
+    } catch (err) {
+      setAlertMessage("Error saving contact");
+    }
+  }
+
+  function getSmsLink() {
+    if (!emergencyContact) return "#";
+
+    const message = `HerWellness Emergency Alert: I may need your help right now. Please contact me immediately.`;
+    const phone = emergencyContact.phone_number;
+
+    const isIOS = typeof navigator !== "undefined" && /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const separator = isIOS ? "&" : "?";
+
+    return `sms:${phone}${separator}body=${encodeURIComponent(message)}`;
+  }
+
+  function findNearbyHospitals() {
+    setLoadingHospitals(true);
+    setLocationError("");
+
+    if (!navigator.geolocation) {
+      setLocationError("Location access is not supported in this browser.");
+      setLoadingHospitals(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const data = await apiCall(`/pregnancy/nearby-hospitals?latitude=${latitude}&longitude=${longitude}`);
+          setHospitals(data.hospitals);
+          if (data.hospitals.length === 0 && data.message) {
+            setLocationError(data.message);
+          }
+        } catch (err) {
+          setLocationError("Could not fetch nearby hospitals.");
+        } finally {
+          setLoadingHospitals(false);
+        }
+      },
+      () => {
+        setLocationError("Location permission denied. Please enable location access.");
+        setLoadingHospitals(false);
+      }
+    );
   }
 
   if (loading || !user) {
@@ -284,6 +383,138 @@ export default function PregnancyPage() {
                 ))}
               </ul>
             </SectionCard>
+
+            {/* Nearby Hospitals */}
+            <SectionCard title="Nearby Hospitals" className="md:col-span-2">
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center gap-2 text-[#251C35]">
+                  <HospitalIcon />
+                  <span className="text-sm font-semibold">Find care near you</span>
+                </div>
+                <button
+                  onClick={findNearbyHospitals}
+                  disabled={loadingHospitals}
+                  className="bg-[#3F9142] text-white text-sm px-4 py-2 rounded-xl font-medium hover:bg-[#357A38] transition-colors disabled:opacity-60"
+                >
+                  {loadingHospitals ? "Finding..." : "Find Near Me"}
+                </button>
+              </div>
+
+              {locationError && (
+                <p className="text-sm mb-3" style={{ color: "#B23A2E" }}>{locationError}</p>
+              )}
+
+              {hospitals.length === 0 && !loadingHospitals && (
+                <p className="text-[#C4BDDB] text-sm py-2 text-center">
+                  Click "Find Near Me" to see nearby hospitals.
+                </p>
+              )}
+
+              <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+                {hospitals.map((h, i) => (
+                  <div
+                    key={i}
+                    className="bg-[#FAF7FF] rounded-2xl p-4 border border-[#F1ECFB] relative"
+                  >
+                    {i === 0 && (
+                      <div className="flex justify-end mb-2">
+                        <span className="bg-green-600 text-white text-[11px] px-3 py-1 rounded-full font-semibold shadow">
+                          ❤️ Nearest
+                        </span>
+                      </div>
+                    )}
+
+                    <p className="font-semibold text-[#251C35] text-sm mb-1.5">🏥 {h.name}</p>
+                    <p className="text-xs text-[#8A8299] mb-1">📍 {h.address}</p>
+
+                    <div className="flex flex-wrap gap-3 mt-2 mb-3 text-xs">
+                      <span className="text-[#7C3AED] font-medium">📏 {h.distance_km} km away</span>
+                      {h.rating && <span className="text-[#B8802F]">⭐ {h.rating}</span>}
+                      <span style={{ color: h.is_open ? "#3F9142" : "#8A8299" }}>
+                        {h.is_open ? "🟢 Open" : "⚪ Hours unknown"}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-[#251C35] mb-3">
+                      📞 {h.phone || "Phone not available"}
+                    </p>
+
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${h.latitude},${h.longitude}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block text-xs text-white px-4 py-2 rounded-xl font-medium"
+                      style={{ backgroundColor: "#7C3AED" }}
+                    >
+                      🗺 Open in Google Maps
+                    </a>
+                  </div>
+                ))}
+              </div>
+            </SectionCard>
+
+            {/* Emergency Contact + Free SMS Alert */}
+                <SectionCard title="Emergency Contact" className="md:col-span-2">
+                  {!emergencyContact ? (
+                    <form onSubmit={handleContactSubmit} className="space-y-3">
+                      <input
+                        type="text"
+                        placeholder="Contact name (e.g. husband's name)"
+                        className={inputClass}
+                        value={contactName}
+                        onChange={(e) => setContactName(e.target.value)}
+                        required
+                      />
+                      <select
+                        className={inputClass + " bg-white"}
+                        value={relationship}
+                        onChange={(e) => setRelationship(e.target.value)}
+                      >
+                        {RELATIONSHIP_OPTIONS.map((o) => (
+                          <option key={o.value} value={o.value}>{o.label}</option>
+                        ))}
+                      </select>
+                      <input
+                        type="tel"
+                        placeholder="Phone number (e.g. +919876543210)"
+                        className={inputClass}
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                        required
+                      />
+                      <button
+                        type="submit"
+                        className="w-full bg-[#3F9142] text-white p-2.5 rounded-xl font-medium hover:bg-[#357A38] transition-colors"
+                      >
+                        Save Emergency Contact
+                      </button>
+                    </form>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="p-3.5 bg-[#FAF7FF] rounded-xl">
+                        <p className="text-sm text-[#251C35] font-semibold">{emergencyContact.contact_name}</p>
+                        <p className="text-xs text-[#8A8299]">{emergencyContact.relationship} · {emergencyContact.phone_number}</p>
+                      </div>
+
+                      <a
+                        href={getSmsLink()}
+                        className="block w-full text-white text-center p-3.5 rounded-xl font-semibold hover:opacity-90 transition-opacity"
+                        style={{ backgroundColor: "#E24C3B" }}
+                      >
+                        🚨 Send Emergency Alert
+                      </a>
+
+                      <p className="text-xs text-[#8A8299] text-center">
+                        This will open your messaging app with a pre-filled alert to {emergencyContact.contact_name}. Just tap send.
+                      </p>
+                    </div>
+                  )}
+                  {alertMessage && (
+                    <p className="text-sm text-center mt-3" style={{ color: "#3F9142" }}>
+                      {alertMessage}
+                    </p>
+                  )}
+                </SectionCard>
           </div>
         )}
       </div>
