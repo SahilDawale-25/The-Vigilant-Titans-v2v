@@ -4,22 +4,22 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../lib/firebase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 
 function Logo() {
   return (
-    <div className="flex items-center justify-center gap-2 mb-2">
-      <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
-        <circle cx="15" cy="15" r="14" stroke="#7C3AED" strokeWidth="1.6" />
-        <path
-          d="M15 8c-3.5 3.2-6 5.8-6 8.6a6 6 0 0 0 12 0c0-2.8-2.5-5.4-6-8.6Z"
-          fill="#7C3AED"
-        />
-        <circle cx="12.6" cy="15.2" r="1.3" fill="white" opacity="0.85" />
-      </svg>
-      <span className="text-lg font-semibold tracking-tight text-[#251C35]">
-        Her<span className="text-[#7C3AED]">Wellness</span>
+    <Link href="/dashboard" className="flex items-center gap-0 shrink-0">
+      <Image
+        src="/images/logo1.png"
+        alt="HerWellness logo"
+        width={50}
+        height={50}
+        className="object-contain"
+      />
+      <span className="text-lg font-semibold tracking-tight text-gray-900">
+        Her<span className="text-pink-900">Wellness</span>
       </span>
-    </div>
+    </Link>
   );
 }
 
