@@ -13,7 +13,7 @@ from models.user import User
 from models.cycle import CycleLog
 from models.wellness import MoodLog, StressLog
 
-USER_EMAIL = "test@example.com"   # <-- ithe tumcha actual signup केलेला email takva
+USER_EMAIL = "sahil12@test.com"   # <-- ithe tumcha actual signup केलेला email takva
 
 db = SessionLocal()
 

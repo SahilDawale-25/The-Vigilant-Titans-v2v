@@ -1,8 +1,8 @@
-import google.generativeai as genai
-from core.config import GEMINI_API_KEY
+from groq import Groq
+from core.config import GROQ_API_KEY
 
-genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel("gemini-1.5-flash")
+client = Groq(api_key=GROQ_API_KEY)
+MODEL_NAME = "llama-3.3-70b-versatile"
 
 LANGUAGE_NAMES = {
     "en": "English",
@@ -34,5 +34,8 @@ def generate_voice_response(user_query: str, language_code: str, conversation_hi
     Respond in 2-4 short sentences in {language_name} only.
     """
 
-    response = model.generate_content(prompt)
-    return response.text
+    response = client.chat.completions.create(
+        model=MODEL_NAME,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return response.choices[0].message.content

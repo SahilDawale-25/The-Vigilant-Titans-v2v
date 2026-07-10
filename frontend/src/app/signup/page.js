@@ -5,6 +5,7 @@ import { auth } from "../../lib/firebase";
 import { useRouter } from "next/navigation";
 
 export default function SignupPage() {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -14,7 +15,24 @@ export default function SignupPage() {
     e.preventDefault();
     setError("");
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const firebaseUser = userCredential.user;
+
+      const res = await fetch("http://localhost:8000/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name,
+          email: firebaseUser.email,
+          preferred_language: "en",
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.detail || "Backend user creation failed");
+      }
+
       router.push("/dashboard");
     } catch (err) {
       setError(err.message);
@@ -26,6 +44,14 @@ export default function SignupPage() {
       <form onSubmit={handleSignup} className="bg-white p-8 rounded-2xl shadow-md w-96">
         <h1 className="text-2xl font-bold mb-6 text-purple-700">Create Account</h1>
         {error && <p className="text-red-500 mb-4 text-sm">{error}</p>}
+        <input
+          type="text"
+          placeholder="Full Name"
+          className="w-full p-3 mb-4 border rounded-lg"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+        />
         <input
           type="email"
           placeholder="Email"

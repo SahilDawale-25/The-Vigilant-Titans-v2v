@@ -1,10 +1,10 @@
 import pdfplumber
 import io
-import google.generativeai as genai
-from core.config import GEMINI_API_KEY
+from groq import Groq
+from core.config import GROQ_API_KEY
 
-genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel("gemini-1.5-flash")
+client = Groq(api_key=GROQ_API_KEY)
+MODEL_NAME = "llama-3.3-70b-versatile"
 
 
 def extract_text_from_pdf(file_bytes: bytes) -> str:
@@ -40,5 +40,8 @@ def analyze_report_text(report_text: str) -> str:
     Keep the explanation clear, warm, and under 300 words.
     """
 
-    response = model.generate_content(prompt)
-    return response.text
+    response = client.chat.completions.create(
+        model=MODEL_NAME,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return response.choices[0].message.content

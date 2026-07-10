@@ -1,8 +1,9 @@
-import google.generativeai as genai
-from core.config import GEMINI_API_KEY
+import os
+from groq import Groq
+from core.config import GROQ_API_KEY
 
-genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel("gemini-1.5-flash")
+client = Groq(api_key=GROQ_API_KEY)
+MODEL_NAME = "llama-3.3-70b-versatile"
 
 
 def generate_cycle_insight(cycle_history: list):
@@ -22,8 +23,12 @@ def generate_cycle_insight(cycle_history: list):
     Keep the tone caring and concise. Do not use medical jargon.
     """
 
-    response = model.generate_content(prompt)
-    return response.text
+    response = client.chat.completions.create(
+        model=MODEL_NAME,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return response.choices[0].message.content
+
 
 def generate_monthly_summary(cycle_count, avg_mood, burnout_score):
     prompt = f"""
@@ -38,8 +43,11 @@ def generate_monthly_summary(cycle_count, avg_mood, burnout_score):
     Include one gentle, practical suggestion for the month ahead.
     Never diagnose. Never mention specific diseases.
     """
-    response = model.generate_content(prompt)
-    return response.text
+    response = client.chat.completions.create(
+        model=MODEL_NAME,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return response.choices[0].message.content
 
 
 def generate_health_twin_insight(profile_data: dict, wellness_score: int, risk_trends: list):
@@ -58,5 +66,8 @@ def generate_health_twin_insight(profile_data: dict, wellness_score: int, risk_t
 
     Keep the total response under 150 words. Do not use clinical or diagnostic language.
     """
-    response = model.generate_content(prompt)
-    return response.text
+    response = client.chat.completions.create(
+        model=MODEL_NAME,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return response.choices[0].message.content

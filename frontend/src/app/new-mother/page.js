@@ -4,6 +4,33 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "../../context/AuthContext";
 import { apiCall } from "../../lib/api";
 
+function BabyIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <circle cx="12" cy="7" r="3.2" strokeWidth="1.7" />
+      <path d="M6 20c0-3.5 2.7-6.2 6-6.2s6 2.7 6 6.2" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function SyringeIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <path d="M19 5l-9.5 9.5M17 3l4 4M4 20l3-1 8.5-8.5-2-2L5 17l-1 3ZM12.5 6.5l2 2M10.5 8.5l2 2"
+        strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function SectionCard({ title, children, className = "" }) {
+  return (
+    <div className={`bg-white rounded-3xl shadow-sm border border-[#F1ECFB] p-5 md:p-6 ${className}`}>
+      <p className="text-[11px] uppercase tracking-wide text-[#8A8299] mb-4">{title}</p>
+      {children}
+    </div>
+  );
+}
+
 export default function NewMotherPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
@@ -16,6 +43,8 @@ export default function NewMotherPage() {
   const [sleepHours, setSleepHours] = useState(6);
   const [supportMessage, setSupportMessage] = useState("");
   const [message, setMessage] = useState("");
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [loggingMood, setLoggingMood] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) router.push("/login");
@@ -48,6 +77,7 @@ export default function NewMotherPage() {
 
   async function handleBabyProfileSubmit(e) {
     e.preventDefault();
+    setSavingProfile(true);
     try {
       await apiCall("/newmother/baby-profile", {
         method: "POST",
@@ -57,11 +87,14 @@ export default function NewMotherPage() {
       loadVaccineSchedule();
     } catch (err) {
       setMessage("Error saving profile");
+    } finally {
+      setSavingProfile(false);
     }
   }
 
   async function handleMoodSubmit(e) {
     e.preventDefault();
+    setLoggingMood(true);
     try {
       const result = await apiCall("/newmother/mood-log", {
         method: "POST",
@@ -71,108 +104,171 @@ export default function NewMotherPage() {
       if (result.supportive_message) setSupportMessage(result.supportive_message);
     } catch (err) {
       setMessage("Error logging mood");
+    } finally {
+      setLoggingMood(false);
     }
   }
 
-  if (loading || !user) return <div className="p-10">Loading...</div>;
+  if (loading || !user) {
+    return (
+      <div className="min-h-screen bg-[#FAF7FF] flex items-center justify-center">
+        <p className="text-[#8A8299] text-sm">Loading...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-rose-50 p-8">
-      <h1 className="text-3xl font-bold text-rose-800 mb-6">New Mother Care</h1>
+    <div className="min-h-screen bg-[#FAF7FF]">
+      <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap');
+      `}</style>
 
-      {!vaccineData && (
-        <div className="bg-white rounded-2xl shadow-md p-6 max-w-md mb-6">
-          <h2 className="text-lg font-semibold mb-4 text-gray-700">Add Baby's Details</h2>
-          <form onSubmit={handleBabyProfileSubmit} className="space-y-4">
-            <input
-              type="text"
-              placeholder="Baby's name"
-              className="w-full p-3 border rounded-lg"
-              value={babyName}
-              onChange={(e) => setBabyName(e.target.value)}
-              required
-            />
-            <input
-              type="date"
-              className="w-full p-3 border rounded-lg"
-              value={dob}
-              onChange={(e) => setDob(e.target.value)}
-              required
-            />
-            <button type="submit" className="w-full bg-rose-600 text-white p-3 rounded-lg hover:bg-rose-700">
-              Save
-            </button>
-          </form>
+      <div
+        className="max-w-5xl mx-auto px-4 py-6 md:px-8 md:py-10"
+        style={{ fontFamily: "'Inter', sans-serif" }}
+      >
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-6 md:mb-8">
+          <div className="w-11 h-11 rounded-2xl bg-[#3F91421A] flex items-center justify-center shrink-0 text-[#3F9142]">
+            <BabyIcon />
+          </div>
+          <div>
+            <h1
+              className="text-[26px] md:text-3xl text-[#251C35] leading-tight"
+              style={{ fontFamily: "'Fraunces', serif" }}
+            >
+              New Mother Care
+            </h1>
+            <p className="text-sm text-[#8A8299]">Vaccinations, feeding tips & your own wellbeing</p>
+          </div>
         </div>
-      )}
 
-      {vaccineData && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Vaccination Schedule */}
-          <div className="bg-white rounded-2xl shadow-md p-6">
-            <h2 className="text-lg font-semibold mb-4 text-gray-700">
-              {vaccineData.baby_name}'s Vaccination Schedule
-            </h2>
-            <ul className="space-y-2 max-h-80 overflow-y-auto">
-              {vaccineData.schedule.map((item, i) => (
-                <li
-                  key={i}
-                  className={`p-3 rounded-lg text-sm ${
-                    item.status === "due_or_completed" ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-600"
-                  }`}
+        {!vaccineData && (
+          <div className="max-w-md">
+            <SectionCard title="Add Baby's Details">
+              <form onSubmit={handleBabyProfileSubmit} className="space-y-4">
+                <input
+                  type="text"
+                  placeholder="Baby's name"
+                  className="w-full p-3 border border-[#EFE9FB] rounded-xl text-sm text-[#251C35] placeholder:text-[#C4BDDB] focus:outline-none focus:ring-2 focus:ring-[#7C3AED33] focus:border-[#7C3AED]"
+                  value={babyName}
+                  onChange={(e) => setBabyName(e.target.value)}
+                  required
+                />
+                <input
+                  type="date"
+                  className="w-full p-3 border border-[#EFE9FB] rounded-xl text-sm text-[#251C35] focus:outline-none focus:ring-2 focus:ring-[#7C3AED33] focus:border-[#7C3AED]"
+                  value={dob}
+                  onChange={(e) => setDob(e.target.value)}
+                  required
+                />
+                <button
+                  type="submit"
+                  disabled={savingProfile}
+                  className="w-full bg-[#3F9142] text-white p-3 rounded-xl font-medium hover:bg-[#357A38] transition-colors disabled:opacity-60"
                 >
-                  <strong>{item.vaccine}</strong>
-                  <br />Due: {item.due_date}
-                </li>
-              ))}
-            </ul>
+                  {savingProfile ? "Saving..." : "Save"}
+                </button>
+                {message && (
+                  <p className={`text-sm text-center ${message.includes("Error") ? "text-red-500" : "text-[#3F9142]"}`}>
+                    {message}
+                  </p>
+                )}
+              </form>
+            </SectionCard>
           </div>
+        )}
 
-          {/* Breastfeeding Tips */}
-          <div className="bg-white rounded-2xl shadow-md p-6">
-            <h2 className="text-lg font-semibold mb-4 text-gray-700">Breastfeeding Guidance</h2>
-            <ul className="space-y-2">
-              {tips.map((tip, i) => (
-                <li key={i} className="text-sm text-gray-700">• {tip}</li>
-              ))}
-            </ul>
-          </div>
+        {vaccineData && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
+            {/* Vaccination Schedule */}
+            <SectionCard title={`${vaccineData.baby_name}'s Vaccination Schedule`}>
+              <ul className="space-y-2 max-h-80 overflow-y-auto">
+                {vaccineData.schedule.map((item, i) => {
+                  const due = item.status === "due_or_completed";
+                  return (
+                    <li
+                      key={i}
+                      className="p-3.5 rounded-xl text-sm flex items-start gap-2.5"
+                      style={{
+                        backgroundColor: due ? "#EEF7EF" : "#FAF7FF",
+                        color: due ? "#2F7A3D" : "#251C35",
+                      }}
+                    >
+                      <span className={due ? "text-[#3F9142]" : "text-[#8A8299]"}>
+                        <SyringeIcon />
+                      </span>
+                      <span>
+                        <strong className="font-semibold">{item.vaccine}</strong>
+                        <br />
+                        <span className="text-xs opacity-80">Due: {item.due_date}</span>
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </SectionCard>
 
-          {/* Postpartum Mood Log */}
-          <div className="bg-white rounded-2xl shadow-md p-6 md:col-span-2">
-            <h2 className="text-lg font-semibold mb-4 text-gray-700">How are you feeling today?</h2>
-            <form onSubmit={handleMoodSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm text-gray-500 mb-1">Mood (1-10): {moodScore}</label>
-                <input
-                  type="range" min="1" max="10"
-                  value={moodScore}
-                  onChange={(e) => setMoodScore(e.target.value)}
-                  className="w-full"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-500 mb-1">Sleep Hours: {sleepHours}</label>
-                <input
-                  type="range" min="0" max="12" step="0.5"
-                  value={sleepHours}
-                  onChange={(e) => setSleepHours(e.target.value)}
-                  className="w-full"
-                />
-              </div>
-              <button type="submit" className="bg-rose-600 text-white px-6 py-2 rounded-lg hover:bg-rose-700">
-                Log Mood
-              </button>
-            </form>
-            {message && <p className="text-sm text-rose-600 mt-3">{message}</p>}
-            {supportMessage && (
-              <div className="mt-4 p-4 bg-yellow-50 text-yellow-800 rounded-lg text-sm">
-                💛 {supportMessage}
-              </div>
-            )}
+            {/* Breastfeeding Tips */}
+            <SectionCard title="Breastfeeding Guidance">
+              <ul className="space-y-2.5">
+                {tips.map((tip, i) => (
+                  <li key={i} className="text-sm text-[#251C35] flex items-start gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#3F9142] mt-1.5 shrink-0" />
+                    {tip}
+                  </li>
+                ))}
+              </ul>
+            </SectionCard>
+
+            {/* Postpartum Mood Log */}
+            <SectionCard title="How are you feeling today?" className="md:col-span-2">
+              <form onSubmit={handleMoodSubmit} className="space-y-4 max-w-md">
+                <div>
+                  <label className="flex items-center justify-between text-sm text-[#251C35] font-medium mb-2">
+                    <span>Mood</span>
+                    <span className="text-[#3F9142] font-semibold">{moodScore}/10</span>
+                  </label>
+                  <input
+                    type="range" min="1" max="10"
+                    value={moodScore}
+                    onChange={(e) => setMoodScore(e.target.value)}
+                    className="w-full accent-[#3F9142]"
+                  />
+                </div>
+                <div>
+                  <label className="flex items-center justify-between text-sm text-[#251C35] font-medium mb-2">
+                    <span>Sleep Hours</span>
+                    <span className="text-[#3F9142] font-semibold">{sleepHours}h</span>
+                  </label>
+                  <input
+                    type="range" min="0" max="12" step="0.5"
+                    value={sleepHours}
+                    onChange={(e) => setSleepHours(e.target.value)}
+                    className="w-full accent-[#3F9142]"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={loggingMood}
+                  className="bg-[#3F9142] text-white px-6 py-2.5 rounded-xl font-medium hover:bg-[#357A38] transition-colors disabled:opacity-60"
+                >
+                  {loggingMood ? "Logging..." : "Log Mood"}
+                </button>
+              </form>
+
+              {message && <p className="text-sm text-[#3F9142] mt-3">{message}</p>}
+
+              {supportMessage && (
+                <div className="mt-4 p-4 rounded-2xl text-sm flex items-start gap-2.5" style={{ backgroundColor: "#FEF6E8", color: "#96660B" }}>
+                  <span className="w-2 h-2 rounded-full bg-[#E0A526] mt-1.5 shrink-0" />
+                  {supportMessage}
+                </div>
+              )}
+            </SectionCard>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

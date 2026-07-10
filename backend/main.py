@@ -52,7 +52,8 @@ from services.report_analyzer_service import extract_text_from_pdf, analyze_repo
 from services.voice_service import generate_voice_response
 
 from data.teen_data import MYTHS_FACTS
-import google.generativeai as genai
+
+
 
 # Ha line sagle tables (users, health_profiles) database madhe automatically banvel
 Base.metadata.create_all(bind=engine)
@@ -61,9 +62,14 @@ app = FastAPI(title="HerWellness API")
 
 
 @app.get("/dashboard/summary")
-def dashboard_summary(user_data: dict = Depends(verify_token)):
-    # Ata sathi dummy/sample data return karto — pudhe database madhun real data yeईल
+def dashboard_summary(
+    user_data: dict = Depends(verify_token),
+    db: Session = Depends(get_db),
+):
+    user = db.query(User).filter(User.email == user_data.get("email")).first()
+    name = user.name if user else user_data.get("email", "").split("@")[0]
     return {
+        "name": name,
         "wellness_score": 78,
         "trend_data": [
             {"day": "Mon", "mood": 6, "sleep": 7, "stress": 4},
@@ -353,7 +359,6 @@ def anonymous_chat(payload: dict):
     if not question:
         raise HTTPException(status_code=400, detail="Question is required")
 
-    model = genai.GenerativeModel("gemini-1.5-flash")
     prompt = f"""
     You are a kind, patient health educator answering a teenager's anonymous question
     about puberty, periods, or general body health.
@@ -369,9 +374,11 @@ def anonymous_chat(payload: dict):
     Question: {question}
     """
 
-    response = model.generate_content(prompt)
-    return {"answer": response.text}
-
+    response = client.chat.completions.create(
+        model=MODEL_NAME,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return {"answer": response.choices[0].message.content}
 
 @app.get("/reports/monthly/download")
 def download_monthly_report(

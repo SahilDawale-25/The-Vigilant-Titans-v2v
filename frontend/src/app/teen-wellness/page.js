@@ -1,5 +1,22 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+
+function SparkleIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M18.4 5.6l-2.8 2.8M8.4 15.6l-2.8 2.8"
+        strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function SendIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <path d="M4 12l16-8-6 8 6 8-16-8Z" strokeWidth="1.6" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 export default function TeenWellnessPage() {
   const [items, setItems] = useState([]);
@@ -7,10 +24,15 @@ export default function TeenWellnessPage() {
   const [question, setQuestion] = useState("");
   const [chatHistory, setChatHistory] = useState([]);
   const [loading, setLoading] = useState(false);
+  const chatEndRef = useRef(null);
 
   useEffect(() => {
     loadMythsFacts();
   }, []);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatHistory, loading]);
 
   async function loadMythsFacts() {
     try {
@@ -51,71 +73,117 @@ export default function TeenWellnessPage() {
   }
 
   return (
-    <div className="min-h-screen bg-blue-50 p-8">
-      <h1 className="text-3xl font-bold text-blue-800 mb-2">Teen Wellness</h1>
-      <p className="text-gray-500 mb-6">A safe, judgment-free space to learn and ask questions.</p>
+    <div className="min-h-screen bg-[#FAF7FF]">
+      <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap');
+      `}</style>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Myth vs Fact Cards */}
-        <div>
-          <h2 className="text-lg font-semibold text-gray-700 mb-4">Myth vs Fact</h2>
-          <div className="space-y-3">
-            {items.map((item) => (
-              <div
-                key={item.id}
-                onClick={() => toggleFlip(item.id)}
-                className="bg-white rounded-2xl shadow-md p-5 cursor-pointer hover:shadow-lg transition"
-              >
-                {!flipped[item.id] ? (
-                  <p className="text-gray-700">
-                    <span className="font-bold text-red-500">Myth: </span>
-                    {item.myth}
-                  </p>
-                ) : (
-                  <p className="text-gray-700">
-                    <span className="font-bold text-green-600">Fact: </span>
-                    {item.fact}
-                  </p>
-                )}
-                <p className="text-xs text-gray-400 mt-2">Tap to {flipped[item.id] ? "see myth" : "reveal fact"}</p>
-              </div>
-            ))}
+      <div
+        className="max-w-5xl mx-auto px-4 py-6 md:px-8 md:py-10"
+        style={{ fontFamily: "'Inter', sans-serif" }}
+      >
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-6 md:mb-8">
+          <div className="w-11 h-11 rounded-2xl bg-[#2563EB1A] flex items-center justify-center shrink-0 text-[#2563EB]">
+            <SparkleIcon />
+          </div>
+          <div>
+            <h1
+              className="text-[26px] md:text-3xl text-[#251C35] leading-tight"
+              style={{ fontFamily: "'Fraunces', serif" }}
+            >
+              Teen Wellness
+            </h1>
+            <p className="text-sm text-[#8A8299]">A safe, judgment-free space to learn and ask questions</p>
           </div>
         </div>
 
-        {/* Anonymous Chat */}
-        <div className="bg-white rounded-2xl shadow-md p-6 flex flex-col h-[600px]">
-          <h2 className="text-lg font-semibold text-gray-700 mb-2">Anonymous Q&A</h2>
-          <p className="text-xs text-gray-400 mb-4">No sign-in needed. Your questions stay private.</p>
-
-          <div className="flex-1 overflow-y-auto space-y-3 mb-4">
-            {chatHistory.map((msg, i) => (
-              <div
-                key={i}
-                className={`p-3 rounded-lg text-sm max-w-[85%] ${
-                  msg.role === "user"
-                    ? "bg-blue-100 ml-auto text-blue-900"
-                    : "bg-gray-100 text-gray-700"
-                }`}
-              >
-                {msg.text}
-              </div>
-            ))}
-            {loading && <div className="text-sm text-gray-400">Thinking...</div>}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
+          {/* Myth vs Fact Cards */}
+          <div>
+            <p className="text-[11px] uppercase tracking-wide text-[#8A8299] mb-3">Myth vs Fact</p>
+            <div className="space-y-3">
+              {items.map((item) => {
+                const isFlipped = flipped[item.id];
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => toggleFlip(item.id)}
+                    className="bg-white rounded-2xl shadow-sm border border-[#F1ECFB] p-4 md:p-5 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all"
+                  >
+                    <p className="text-sm text-[#251C35] leading-relaxed">
+                      <span
+                        className={`font-semibold ${isFlipped ? "text-[#3F9142]" : "text-[#E24C3B]"}`}
+                      >
+                        {isFlipped ? "Fact: " : "Myth: "}
+                      </span>
+                      {isFlipped ? item.fact : item.myth}
+                    </p>
+                    <p className="text-xs text-[#C4BDDB] mt-2">
+                      Tap to {isFlipped ? "see myth" : "reveal fact"}
+                    </p>
+                  </div>
+                );
+              })}
+              {items.length === 0 && (
+                <p className="text-[#C4BDDB] text-sm py-4 text-center">Loading...</p>
+              )}
+            </div>
           </div>
 
-          <form onSubmit={handleAskQuestion} className="flex gap-2">
-            <input
-              type="text"
-              placeholder="Ask anything..."
-              className="flex-1 p-3 border rounded-lg"
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-            />
-            <button type="submit" className="bg-blue-600 text-white px-4 rounded-lg hover:bg-blue-700">
-              Send
-            </button>
-          </form>
+          {/* Anonymous Chat */}
+          <div className="bg-white rounded-3xl shadow-sm border border-[#F1ECFB] p-5 md:p-6 flex flex-col h-[500px] md:h-[600px]">
+            <p className="text-[11px] uppercase tracking-wide text-[#8A8299] mb-1">Anonymous Q&A</p>
+            <p className="text-xs text-[#C4BDDB] mb-4">No sign-in needed. Your questions stay private.</p>
+
+            <div className="flex-1 overflow-y-auto space-y-3 mb-4 pr-1">
+              {chatHistory.length === 0 && !loading && (
+                <div className="h-full flex flex-col items-center justify-center text-center px-4">
+                  <div className="w-10 h-10 rounded-xl bg-[#2563EB1A] flex items-center justify-center mb-2 text-[#2563EB]">
+                    <SparkleIcon />
+                  </div>
+                  <p className="text-sm text-[#8A8299]">Ask anything about puberty, periods, or body health.</p>
+                </div>
+              )}
+              {chatHistory.map((msg, i) => (
+                <div
+                  key={i}
+                  className={`p-3 rounded-2xl text-sm max-w-[85%] leading-relaxed ${
+                    msg.role === "user"
+                      ? "bg-[#7C3AED] text-white ml-auto"
+                      : "bg-[#FAF7FF] text-[#251C35]"
+                  }`}
+                >
+                  {msg.text}
+                </div>
+              ))}
+              {loading && (
+                <div className="bg-[#FAF7FF] text-[#8A8299] text-sm p-3 rounded-2xl max-w-[60%] flex gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#C4BDDB] animate-bounce [animation-delay:-0.3s]" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#C4BDDB] animate-bounce [animation-delay:-0.15s]" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#C4BDDB] animate-bounce" />
+                </div>
+              )}
+              <div ref={chatEndRef} />
+            </div>
+
+            <form onSubmit={handleAskQuestion} className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Ask anything..."
+                className="flex-1 p-3 border border-[#EFE9FB] rounded-xl text-sm text-[#251C35] placeholder:text-[#C4BDDB] focus:outline-none focus:ring-2 focus:ring-[#7C3AED33] focus:border-[#7C3AED]"
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+              />
+              <button
+                type="submit"
+                className="bg-[#7C3AED] text-white px-4 rounded-xl hover:bg-[#6B21D8] transition-colors shrink-0"
+                aria-label="Send"
+              >
+                <SendIcon />
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     </div>
