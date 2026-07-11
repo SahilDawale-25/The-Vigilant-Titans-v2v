@@ -13,6 +13,13 @@ Women's healthcare is often fragmented across multiple applications, with separa
 
 ---
 
+## 🚀 Important Links
+
+- **🌐 Live Deployment:** https://the-vigilant-titans-v2v.vercel.app
+- **🎥 Demo Video:** https://drive.google.com/file/d/15QdmHP6VQXeFfo7BbR-hSjuncfpdTo0D/view?usp=drive_link
+
+---
+
 # ✨ Features
 
 ## 🌼 Multi-Stage Women's Health Platform
